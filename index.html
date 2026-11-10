@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Фрірайдери Гирино\Ходосовки 1.0</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rubik+Glitch&family=Montserrat:ital,wght@0,700;0,900;1,900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        meme: ['"Press Start 2P"', 'cursive'],
+                        glitch: ['"Rubik Glitch"', 'sans-serif'],
+                        sans: ['"Montserrat"', 'sans-serif']
+                    },
+                    colors: {
+                        neonGreen: '#00ff66',
+                        neonPink: '#ff007f',
+                        neonYellow: '#ffe600',
+                        neonPurple: '#9d00ff'
+                    },
+                    animation: {
+                        'spin-slow': 'spin 6s linear infinite',
+                        'bounce-fast': 'bounce 0.5s infinite',
+                        'pulse-glow': 'pulseGlow 1.5s infinite alternate'
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%': { boxShadow: '0 0 15px #00ff66, 0 0 30px #00ff66' },
+                            '100%': { boxShadow: '0 0 30px #ff007f, 0 0 50px #ff007f' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0b0c10;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        /* Glitch Text Effect */
+        .glitch-title {
+            text-shadow: 3px 3px 0px #ff007f, -3px -3px 0px #00ff66;
+        }
+
+        /* Animated Floating Canvas / Marquee elements */
+        .floating-tag {
+            position: fixed;
+            pointer-events: none;
+            z-index: 20;
+            font-weight: 900;
+            animation: floatUp 8s linear infinite;
+            opacity: 0.85;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(105vh) rotate(0deg) scale(0.8);
+                opacity: 0;
+            }
+            10% { opacity: 0.9; }
+            90% { opacity: 0.9; }
+            100% {
+                transform: translateY(-10vh) rotate(360deg) scale(1.2);
+                opacity: 0;
+            }
+        }
+
+        /* Meme Button Styles */
+        .btn-meme {
+            background: linear-gradient(135deg, #ff007f, #9d00ff, #00ff66);
+            background-size: 300% 300%;
+            animation: gradientShift 3s ease infinite;
+            box-shadow: 0 8px 0 #000, 0 15px 25px rgba(255, 0, 127, 0.5);
+            transition: all 0.1s ease-in-out;
+        }
+
+        .btn-meme:active {
+            transform: translateY(6px);
+            box-shadow: 0 2px 0 #000, 0 5px 10px rgba(255, 0, 127, 0.5);
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 1:1 Aspect ratio photo frame with centered object position */
+        .photo-frame {
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            object-position: center 50%;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f0f15;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ff007f;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col justify-between selection:bg-neonPink selection:text-black">
+
+    <!-- Floating Background Text / Emojis Layer -->
+    <div id="floating-container" class="fixed inset-0 overflow-hidden pointer-events-none z-10"></div>
+
+    <!-- Audio Controls & Status Header -->
+    <header class="relative z-30 p-4 flex justify-between items-center bg-black/60 backdrop-blur-md border-b-2 border-neonPink/40 sticky top-0">
+        <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-person-biking text-neonGreen text-2xl animate-bounce"></i>
+            <span class="font-meme text-xs sm:text-sm text-neonYellow tracking-tight">ГИРИНО / ХОДОСОВКА</span>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            <button id="mute-btn" onclick="toggleAudio()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 border border-neonGreen text-neonGreen font-bold rounded-lg text-xs flex items-center space-x-2 transition">
+                <i id="audio-icon" class="fa-solid fa-volume-xmark"></i>
+                <span id="audio-status">МУЗИКА: ВИМК</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN LANDING / HERO VIEW -->
+    <main class="relative z-20 flex-grow flex flex-col items-center justify-center p-4 text-center">
+
+        <!-- Title Section -->
+        <div class="my-6 max-w-4xl">
+            <div class="inline-block px-4 py-1 mb-3 rounded-full bg-neonPink/20 border border-neonPink text-neonPink text-xs sm:text-sm font-bold uppercase tracking-widest animate-pulse">
+                🔥 Офіційний сайт фрірайд легенд 🔥
+            </div>
+            <h1 class="glitch-title font-glitch text-4xl sm:text-6xl md:text-7xl font-extrabold text-white tracking-wider mb-4 uppercase">
+                Фрірайдери<br><span class="text-neonYellow">Гирино\Ходосовки 1.0</span>
+            </h1>
+            <p class="text-gray-300 text-sm sm:text-lg max-w-xl mx-auto font-medium">
+                Готуйся к дікому зальоту! Натискай кнопку нижче, щоб вёхати на кар'єр і відкрити картки пацанів!
+            </p>
+        </div>
+
+        <!-- Big Start Action Button -->
+        <div id="start-section" class="my-8">
+            <button onclick="enterQuarry()" class="btn-meme font-meme text-lg sm:text-2xl px-8 py-6 rounded-2xl text-white font-black tracking-widest border-4 border-yellow-300 transform hover:scale-105 transition cursor-pointer">
+                🚀 ВЁХАТЬ НА КАРЕР 🚀
+            </button>
+        </div>
+
+        <!-- RIDERS GALLERY (Initially revealed or smooth scroll) -->
+        <section id="riders-section" class="w-full max-w-7xl mx-auto mt-10 px-2 sm:px-4 hidden transition-all duration-700">
+            <div class="text-center mb-10">
+                <h2 class="font-glitch text-3xl sm:text-5xl text-neonGreen mb-2">ЕКСПЕРТИ ФРІРАЙДУ</h2>
+                <p class="text-gray-400 text-xs sm:text-base">Клацай на фотки щоб оновити або жмакай мемні кнопки під ними!</p>
+            </div>
+
+            <!-- Grid of 6 Rider Cards -->
+            <div id="cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                <!-- Cards will be injected by JavaScript -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="relative z-20 bg-black/80 border-t border-gray-800 text-center py-6 mt-12">
+        <p class="text-gray-400 font-bold text-xs sm:text-sm">
+            © 2026 ФРІРАЙДЕРИ ГИРИНО / ХОДОСОВКА. ВСІ ПРАВА ЗАХИЩЕНІ ОБУХАВКОЮ.
+        </p>
+        <p class="text-neonPink text-xs mt-1 font-mono">
+            "Коч коч Мухтара & МТБ Дроп через человека"
+        </p>
+    </footer>
+
+    <!-- MODAL POPUP FOR RIDER ACTIONS -->
+    <div id="meme-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden p-4">
+        <div class="bg-gray-900 border-4 border-neonGreen rounded-2xl max-w-md w-full p-6 text-center transform transition-all scale-95" id="modal-box">
+            <div id="modal-icon" class="text-6xl mb-4">🚀</div>
+            <h3 id="modal-title" class="font-meme text-xl text-neonYellow mb-2"></h3>
+            <p id="modal-body" class="text-gray-200 text-base font-semibold mb-6"></p>
+            <button onclick="closeModal()" class="w-full py-3 bg-neonPink hover:bg-pink-600 text-white font-bold rounded-xl shadow-lg border-2 border-black transition">
+                ЗАКРИТИ [OK]
+            </button>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // ----------------------------------------------------
+        // DATA & MEME CONFIG
+        // ----------------------------------------------------
+        const MEME_PHRASES = [
+            "вёхал на карер",
+            "Обухавка",
+            "коч коч Мухтара",
+            "Вулица",
+            "Джейсон Марджела",
+            "мтб дроп через человека",
+            "ДИКИЙ ФРІРАЙД 🚲",
+            "ГАЗ В ПОЛ 🔥",
+            "ХОДОСОВКА TOP 🏆"
+        ];
+
+        const MEME_EMOJIS = ["🚴‍♂️", "🛵", "💨", "🤪", "🔥", "🏆", "⚡", "🚀", "👑"];
+
+        // Initial riders list with default placeholder images that can be replaced by user
+        const RIDERS = [
+            {
+                id: 1,
+                name: "Матвій Бадяг",
+                title: "Дикий Дигер",
+                desc: "Головний по розкопках та перпендикулярних вильотах на кар'єрі.",
+                icon: "⛏️",
+                color: "border-neonGreen",
+                bgColor: "from-green-900/40",
+                svgBg: "#064e3b",
+                svgText: "Матвій",
+                photo: "./Matvii.jpg"
+            },
+            {
+                id: 2,
+                name: "Тіхон",
+                title: "Муж Коровы",
+                desc: "Найперший на районі, хто приборкав дикий фрірайд та корів.",
+                icon: "🐄",
+                color: "border-neonYellow",
+                bgColor: "from-yellow-900/40",
+                svgBg: "#78350f",
+                svgText: "Тіхон",
+                photo: "./Tihon.jpg"
+            },
+            {
+                id: 3,
+                name: "Нікіта з батей",
+                title: "Некітка і батч",
+                desc: "Сімейний дует фрірайдерів. Батя контролює стиль, Некітка дає газу.",
+                icon: "🕶️",
+                color: "border-neonPink",
+                bgColor: "from-pink-900/40",
+                svgBg: "#831843",
+                svgText: "Нікіта + Батя",
+                photo: "./Nikita.jpg"
+            },
+            {
+                id: 4,
+                name: "Міша Шиптун",
+                title: "Мішаня єндуріст",
+                desc: "Безшумно пролітає Обухавку. Швидше за вітер, тихо як шипшина.",
+                icon: "🏍️",
+                color: "border-neonPurple",
+                bgColor: "from-purple-900/40",
+                svgBg: "#581c87",
+                svgText: "Мішаня",
+                photo: "./Misha.jpg"
+            },
+            {
+                id: 5,
+                name: "Лудик Нагорний",
+                title: "Лудик Худший фрірайдер",
+                desc: "Легенда трюків. Робить мтб дроп через человека прямо у яму.",
+                icon: "💥",
+                color: "border-red-500",
+                bgColor: "from-red-900/40",
+                svgBg: "#7f1d1d",
+                svgText: "Лудик",
+                photo: "./Ludik.jpg"
+            },
+            {
+                id: 6,
+                name: "Тіма Галімий",
+                title: "Лютий геймер",
+                desc: "Катає фрірайд у касці з навушниками. Клік — і він вже на фініші.",
+                icon: "🎮",
+                color: "border-blue-500",
+                bgColor: "from-blue-900/40",
+                svgBg: "#1e3a8a",
+                svgText: "Тіма",
+                photo: "./Tima.jpg"
+            }
+        ];
+
+        // Generator for SVG Cartoon Avatars as initial placeholders
+        function createAvatarSVG(bgColor, nameText, icon) {
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="100%" height="100%">
+                <rect width="300" height="300" fill="${bgColor}"/>
+                <circle cx="150" cy="120" r="55" fill="#ffd1a9"/>
+                <circle cx="130" cy="110" r="7" fill="#111"/>
+                <circle cx="170" cy="110" r="7" fill="#111"/>
+                <path d="M 125 135 Q 150 160 175 135" stroke="#111" stroke-width="5" fill="none" stroke-linecap="round"/>
+                <path d="M 100 240 Q 150 170 200 240 Z" fill="#222"/>
+                <text x="150" y="275" font-family="sans-serif" font-weight="900" font-size="20" fill="#ffffff" text-anchor="middle">${nameText}</text>
+                <text x="150" y="50" font-size="30" text-anchor="middle">${icon}</text>
+            </svg>`;
+            return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+        }
+
+        // Custom action responses for rider buttons
+        const RIDER_ACTIONS = [
+            { name: "🚀 ВЁХАТИ В ЯМУ", sound: "boost" },
+            { name: "⚡ МТБ ДРОП", sound: "drop" },
+            { name: "🔥 КОЧ МУХТАРА", sound: "bark" }
+        ];
+
+        // ----------------------------------------------------
+        // AUDIO SYNTHESIZER (Web Audio API - No external files needed)
+        // ----------------------------------------------------
+        let audioCtx = null;
+        let isMuted = true;
+        let bgMusicInterval = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSoundEffect(type) {
+            if (isMuted) return;
+            initAudio();
+
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'boost') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.3);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+            } else if (type === 'drop') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(80, now + 0.4);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            } else if (type === 'bark') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.setValueAtTime(150, now + 0.1);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            } else if (type === 'beep') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+            }
+        }
+
+        // Funny 8-bit chip synth loop generator
+        function start8BitBgMusic() {
+            if (bgMusicInterval) clearInterval(bgMusicInterval);
+            
+            const notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 523.25]; // C, D, E, F, G, A, C5
+            let step = 0;
+
+            bgMusicInterval = setInterval(() => {
+                if (isMuted || !audioCtx) return;
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                // Funny random synth beat
+                const note = notes[Math.floor(Math.random() * notes.length)];
+                osc.type = step % 2 === 0 ? 'square' : 'triangle';
+                osc.frequency.setValueAtTime(note, audioCtx.currentTime);
+
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
+                step++;
+            }, 200);
+        }
+
+        function toggleAudio() {
+            initAudio();
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            isMuted = !isMuted;
+            const btnText = document.getElementById('audio-status');
+            const btnIcon = document.getElementById('audio-icon');
+
+            if (isMuted) {
+                btnText.innerText = "МУЗИКА: ВИМК";
+                btnIcon.className = "fa-solid fa-volume-xmark";
+                if (bgMusicInterval) clearInterval(bgMusicInterval);
+            } else {
+                btnText.innerText = "МУЗИКА: УВІМК";
+                btnIcon.className = "fa-solid fa-volume-high text-neonGreen animate-pulse";
+                start8BitBgMusic();
+                playSoundEffect('boost');
+            }
+        }
+
+        // ----------------------------------------------------
+        // UI & CARD RENDERING
+        // ----------------------------------------------------
+        function renderRiderCards() {
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = '';
+
+            RIDERS.forEach(rider => {
+                const card = document.createElement('div');
+                card.className = `relative group bg-gray-900/90 rounded-2xl p-5 border-2 ${rider.color} shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 flex flex-col justify-between overflow-hidden backdrop-blur-sm`;
+
+                const defaultAvatar = createAvatarSVG(rider.svgBg, rider.svgText, rider.icon);
+                const initialImgSrc = rider.photo || defaultAvatar;
+
+                card.innerHTML = `
+                    <!-- Background Glow -->
+                    <div class="absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br ${rider.bgColor} to-transparent rounded-full blur-2xl pointer-events-none"></div>
+
+                    <div>
+                        <!-- Header / Badge -->
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-2xl">${rider.icon}</span>
+                            <span class="font-meme text-[10px] text-neonYellow px-2.5 py-1 bg-black/60 rounded-full border border-yellow-500/30">
+                                CARD #${rider.id}
+                            </span>
+                        </div>
+
+                        <!-- 1:1 Photo Frame with Face Centered Styling & Image Uploader -->
+                        <div class="relative w-full rounded-xl overflow-hidden border-2 border-gray-700 group-hover:border-neonYellow transition mb-4 bg-gray-800">
+                            <img id="rider-img-${rider.id}" 
+                                 src="${initialImgSrc}" 
+                                 onerror="handleImgError(this, '${rider.photo}', '${defaultAvatar}')"
+                                 alt="${rider.name}" 
+                                 class="photo-frame rounded-xl transform group-hover:scale-105 transition duration-500" />
+
+                            <!-- Overlay photo change button -->
+                            <label class="absolute inset-0 bg-black/60 opacity-90 sm:opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white cursor-pointer transition duration-300 p-2 text-center">
+                                <i class="fa-solid fa-cloud-arrow-up text-4xl mb-2 text-neonGreen animate-bounce"></i>
+                                <span class="font-black text-xs bg-neonPink px-3 py-1.5 rounded-lg shadow-md border border-white">
+                                    📁 Завантажити фото
+                                </span>
+                                <span class="text-[10px] text-gray-300 mt-1">Клацни щоб замінити фотку ${rider.name.split(' ')[0]}</span>
+                                <input type="file" accept="image/*" class="hidden" onchange="uploadRiderPhoto(event, ${rider.id})" />
+                            </label>
+                        </div>
+
+                        <!-- Rider Name & Title -->
+                        <h3 class="font-black text-xl sm:text-2xl text-white tracking-wide">${rider.name}</h3>
+                        <div class="inline-block my-1 px-3 py-0.5 bg-neonPink/20 text-neonPink border border-neonPink/40 rounded-md font-bold text-xs sm:text-sm">
+                            "${rider.title}"
+                        </div>
+
+                        <p class="text-gray-400 text-xs sm:text-sm mt-2 leading-relaxed">
+                            ${rider.desc}
+                        </p>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="mt-5 space-y-2">
+                        <div class="grid grid-cols-3 gap-1.5">
+                            ${RIDER_ACTIONS.map(action => `
+                                <button onclick="triggerRiderAction('${rider.name}', '${rider.title}', '${action.name}', '${action.sound}')" 
+                                        class="py-2 px-1 text-[10px] sm:text-xs font-bold bg-gray-800 hover:bg-neonPink hover:text-black text-gray-200 rounded-lg border border-gray-700 transition duration-200">
+                                    ${action.name}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // Custom local photo reader handler
+        function uploadRiderPhoto(event, id) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgElement = document.getElementById(`rider-img-${id}`);
+                    if (imgElement) {
+                        imgElement.src = e.target.result;
+                    }
+                    playSoundEffect('boost');
+                    triggerConfetti();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Auto fallback handler for jpg/png extensions
+        function handleImgError(img, originalPath, fallbackAvatar) {
+            if (originalPath.endsWith('.jpg')) {
+                img.src = originalPath.replace('.jpg', '.png');
+            } else if (originalPath.endsWith('.png')) {
+                img.src = originalPath.replace('.png', '.jpeg');
+            } else {
+                img.src = fallbackAvatar;
+            }
+        }
+
+        // ----------------------------------------------------
+        // INTERACTIVE EFFECTS & CONFETTI
+        // ----------------------------------------------------
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 120,
+                    spread: 80,
+                    origin: { y: 0.6 },
+                    colors: ['#00ff66', '#ff007f', '#ffe600', '#9d00ff']
+                });
+            }
+        }
+
+        function enterQuarry() {
+            playSoundEffect('boost');
+            triggerConfetti();
+
+            // Auto unmute if user clicks big button
+            if (isMuted) {
+                toggleAudio();
+            }
+
+            const section = document.getElementById('riders-section');
+            section.classList.remove('hidden');
+            section.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function triggerRiderAction(name, title, actionName, soundType) {
+            playSoundEffect(soundType);
+            triggerConfetti();
+
+            const modal = document.getElementById('meme-modal');
+            const titleEl = document.getElementById('modal-title');
+            const bodyEl = document.getElementById('modal-body');
+            const iconEl = document.getElementById('modal-icon');
+
+            iconEl.innerText = actionName.split(' ')[0] || "🔥";
+            titleEl.innerText = `${name} (${title})`;
+            bodyEl.innerText = `УСПІШНО ВИКОНАНО: "${actionName}" на території Обухавки! Режим фрірайду на максимумі!`;
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            playSoundEffect('beep');
+            document.getElementById('meme-modal').classList.add('hidden');
+        }
+
+        // ----------------------------------------------------
+        // FLOATING BACKGROUND MEME PHRASES
+        // ----------------------------------------------------
+        function spawnFloatingText() {
+            const container = document.getElementById('floating-container');
+            if (!container) return;
+
+            const elem = document.createElement('div');
+            elem.className = 'floating-tag';
+
+            const isPhrase = Math.random() > 0.4;
+            const text = isPhrase 
+                ? MEME_PHRASES[Math.floor(Math.random() * MEME_PHRASES.length)] 
+                : MEME_EMOJIS[Math.floor(Math.random() * MEME_EMOJIS.length)];
+
+            elem.innerText = text;
+
+            // Random positioning & styling
+            const left = Math.random() * 90; // 0 to 90vw
+            const colors = ['#00ff66', '#ff007f', '#ffe600', '#00e5ff', '#ffffff'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const fontSize = Math.floor(Math.random() * 16) + 14; // 14px to 30px
+
+            elem.style.left = `${left}vw`;
+            elem.style.color = color;
+            elem.style.fontSize = `${fontSize}px`;
+            elem.style.animationDuration = `${Math.random() * 5 + 6}s`; // 6s - 11s
+
+            container.appendChild(elem);
+
+            // Cleanup after animation
+            setTimeout(() => {
+                elem.remove();
+            }, 11000);
+        }
+
+        // ----------------------------------------------------
+        // INITIALIZATION
+        // ----------------------------------------------------
+        window.onload = function() {
+            renderRiderCards();
+
+            // Spawn floating tags continuously
+            setInterval(spawnFloatingText, 1200);
+
+            // Add escape key listener for modal
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeModal();
+            });
+        };
+    </script>
+</body>
+</html>
